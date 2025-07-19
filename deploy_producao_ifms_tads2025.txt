@@ -1,0 +1,111 @@
+# IFMS - TADS 2025
+# Guia de Deploy em Produção - Projeto Pessoa
+# Tecnologias: Java, Spring Boot (API), PostgreSQL 16, Tomcat 11, HTML + JavaScript
+
+=====================================================
+🔧 1. CONFIGURAÇÃO DO BANCO POSTGRESQL (PORTA 5132)
+=====================================================
+Banco:        seu_banco
+Usuário:      postgres
+Senha:        zeca
+Porta:        5132
+
+-- Crie a tabela pessoa com auto incremento de código, CPF único e nome:
+Arquivo: schema.sql
+
+CREATE TABLE IF NOT EXISTS pessoa (
+    codigo SERIAL PRIMARY KEY,
+    cpf CHAR(11) UNIQUE NOT NULL,
+    nome TEXT NOT NULL
+);
+
+Importar via terminal:
+psql -h localhost -p 5132 -U postgres -d seu_banco -f schema.sql
+
+=====================================================
+🛠️ 2. SPRING BOOT - CONFIGURAÇÃO DA API
+=====================================================
+Arquivo: src/main/resources/application.properties
+
+spring.datasource.url=jdbc:postgresql://localhost:5132/seu_banco
+spring.datasource.username=postgres
+spring.datasource.password=zeca
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+server.port=8080
+
+=====================================================
+📦 3. AJUSTES NO POM.XML PARA PRODUÇÃO (WAR)
+=====================================================
+<packaging>war</packaging>
+<dependency>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-web</artifactId>
+  <exclusions>
+    <exclusion>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-tomcat</artifactId>
+    </exclusion>
+  </exclusions>
+</dependency>
+<dependency>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-tomcat</artifactId>
+  <scope>provided</scope>
+</dependency>
+<build>
+  <finalName>pessoa-api</finalName>
+  <plugins>
+    <plugin>
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-war-plugin</artifactId>
+      <version>3.3.1</version>
+    </plugin>
+  </plugins>
+</build>
+
+=====================================================
+🚀 4. GERAR .WAR DA API
+=====================================================
+mvn clean package
+Arquivo gerado: target/pessoa-api.war
+
+=====================================================
+🧩 5. AJUSTE NA CLASSE PRINCIPAL
+=====================================================
+package com.seuprojeto;
+
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
+
+public class ServletInitializer extends SpringBootServletInitializer {
+  @Override
+  protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
+    return application.sources(SuaClassePrincipalApplication.class);
+  }
+}
+
+=====================================================
+🖥️ 6. DEPLOY NO TOMCAT 11
+=====================================================
+sudo cp target/pessoa-api.war /var/lib/tomcat11/webapps/
+sudo systemctl restart tomcat11
+http://localhost:8080/pessoa-api/api/pessoas
+
+=====================================================
+🌐 7. FRONT-END - PÁGINA ÚNICA HTML
+=====================================================
+Arquivo: index.html
+Colocar em: /var/lib/tomcat11/webapps/ROOT/index.html
+Ajustar em JS: const API_URL = '/pessoa-api/api/pessoas';
+
+=====================================================
+✅ 8. ESTRUTURA FINAL DO PROJETO
+=====================================================
+📁 projeto/
+ ├── src/
+ ├── pom.xml
+ ├── schema.sql
+ ├── target/pessoa-api.war
+ └── index.html
